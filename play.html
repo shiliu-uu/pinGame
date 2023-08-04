@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        canvas {
+            border: 1px solid #999;
+            display: block;
+            margin: 0px auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cvs" width="1200px" height="800px"></canvas>
+    <script src="js/tool.js"></script>
+    <script>
+        // 关卡数据：插入的针个数；大圆上的针个数；大圆转速；
+        var levels = [
+            {balls : 5, topBalls : 3, speed : 80},
+            {balls : 6, topBalls : 3, speed : 70},
+            {balls : 7, topBalls : 3, speed : 60},
+            {balls : 8, topBalls : 4, speed : 50},
+            {balls : 9, topBalls : 4, speed : 40},
+            {balls : 10, topBalls : 5, speed : 30},
+            {balls : 11, topBalls : 5, speed : 20},
+        ];
+        // 获取关卡
+        var level = location.href.split('#')[1];
+        if(level){
+            level = parseInt(level);
+        } else{
+            level = 0;
+        }
+        var levelData = levels[level];
+
+        var cvs = document.querySelector('#cvs');
+        var ctx = cvs.getContext('2d');
+        var width = 1200, height = 800;
+        var cx = width / 2, cy = height / 2;
+        // 1. 绘制大圆
+        var coreBall = {
+            distance : 130, // 小球到大球的距离
+            initRadian : 0, // 小球初始角度
+            deltaRadian : PI / 36, // 每次转动的角度
+            rSmall : 10,    // 小球半径
+            init : function(){ // 初始化数据
+                this.circle = new Circle(cx, 200, 50, 0, PI2, {fillStyle : 'black'});
+                this.txt = new Text(level + 1, cx - 15, 215, {fillStyle : 'white', font : '50px 微软雅黑'});
+                // 创建小球数组
+                this.balls = [];
+                var radian = 0; // 当前角度
+                var deltaRadian = PI2 / levelData.topBalls;
+                for(var i = 0; i < levelData.topBalls; i++){
+                    var sb = new Circle(cx + this.distance * Math.cos(radian),
+                                        200 + this.distance * Math.sin(radian),
+                                        this.rSmall, 0, PI2, {fillStyle : 'black'});
+                    sb.deg = radian;    // 小球当前角度
+                    this.balls.push(sb);
+                    radian += deltaRadian;
+                }
+            },
+            draw : function(ctx) {  // 绘制大圆
+                this.circle.fill(ctx);
+                for(var i = 0; i < this.balls.length; i++){ // 更新小球圆心
+                    var sb = this.balls[i];
+                    sb.deg += this.deltaRadian;
+                    if(sb.deg >= PI2){ // 超出范围 2PI，则归 0
+                        sb.deg = 0;
+                    }
+                    console.log(sb.deg);
+                    sb.x = cx + this.distance * Math.cos(sb.deg);
+                    sb.y = 200 + this.distance * Math.sin(sb.deg);                    
+                    sb.fill(ctx);
+
+                    ctx.beginPath();
+                    ctx.moveTo(cx, 200);
+                    ctx.lineTo(sb.x, sb.y);
+                    ctx.strokeStyle = 'black';
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                this.txt.draw(ctx);
+            },
+            add : function(){
+                var deg = HALF_PI;
+                var ball = new Circle(cx + this.distance * Math.cos(deg),
+                                        200 + this.distance * Math.sin(deg), 
+                                        this.rSmall, 0, PI2, {fillStyle : 'black'});
+                ball.deg = deg;
+                this.balls.push(ball);
+            }
+        };
+        var fireBalls = {
+            initY : 180,
+            distance : 30,
+            balls : [],
+            rRadius : 10,
+            init : function(){ // 初始化方法
+                var y = 200 + this.initY;
+                for(var i = 0; i < levelData.balls; i++){
+                    this.balls.push(new Circle(cx, y, 
+                    this.rRadius, 0, PI2, 
+                    {fillStyle : 'black'}));
+                    y += this.distance;
+                }
+            },
+            draw : function(ctx){
+                for(var i = 0; i < this.balls.length; i++){
+                    this.balls[i].fill(ctx);
+                    // 写字
+                    var no = this.balls.length - i;
+                    ctx.beginPath();
+                    ctx.font = '16px 微软雅黑';
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(no,
+                        this.balls[i].x - 5, 
+                        this.balls[i].y + 5);
+                    ctx.closePath();
+                }
+            },
+            removeTop : function(){
+                this.balls.length -= 1;
+            }
+        }
+        // 初始化操作
+        coreBall.init();
+        fireBalls.init();
+
+        // var deg = 0, delta = PI / 18;
+        drawFrame();
+
+        function drawFrame(){
+            ctx.clearRect(0, 0, width, height);
+            // 绘制大球
+            coreBall.draw(ctx);
+            // 绘制发射球
+            fireBalls.draw(ctx);
+        }
+        setInterval(function() {
+            drawFrame();
+        }, levelData.speed);
+
+        // 为 document 添加点击事件
+        document.addEventListener('click', function(){
+            var flag = true;
+            // 碰撞检测，查看发射的小球是否与旋转的小球碰撞
+            for(var i = 0; i < coreBall.balls.length; i++){
+                var ball = coreBall.balls[i];
+                var a = Math.abs(HALF_PI - ball.deg) / 2;
+                if(coreBall.distance * Math.sin(a) <= coreBall.rSmall){ // 检测到碰撞
+                    alert('闯关失败！');
+                    location = 'game.html#' + level;
+                    flag = false; // 闯关失败
+                    break;
+                }
+            }
+            if(flag){ // 如果发射成功，则添加新球，并检查是否过关
+                // 添加新针
+                coreBall.add();
+                // 删除小球
+                fireBalls.removeTop();
+                // 判断是否过关
+                if(fireBalls.balls.length === 0){
+                    alert('闯关成功！');
+                    level++;
+                    if(level === 7){
+                        level = 0;
+                    }
+                    location = 'game.html#' + level;
+                } 
+            }
+        });
+    </script>
+</body>
+</html>

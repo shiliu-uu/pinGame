@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关卡</title>
+    <style>
+        body{background: url(images/11.jpg) no-repeat;}
+        #container{width:230px; margin:100px auto;}
+        #container .btn{width:100px; height:100px;border: 1px solid #999;
+            border-radius: 10px; text-align: center; margin:0px auto;
+            padding-top:20px; box-sizing: border-box; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>见缝插针小游戏</h1>
+        <div class="btn">
+            <img src="images/play.png" alt=""><br><span id="level">关卡</span>     
+        </div>
+    </div>
+    <script>
+        // 获取关卡信息 http://xxx#1;
+        var level = location.href.split('#')[1];
+        if(level){
+            level = parseInt(level);
+            document.querySelector('#level').innerHTML = '关卡 ' + (level + 1);
+        } else{
+            document.querySelector('#level').innerHTML = '关卡 1';
+        }
+        var btn = document.querySelector('.btn');
+        btn.addEventListener('click', function(e){
+            if(level){
+                location = 'play.html#' + level;
+            } else{
+                location = 'play.html';
+            }
+        });
+    </script>
+</body>
+</html>
